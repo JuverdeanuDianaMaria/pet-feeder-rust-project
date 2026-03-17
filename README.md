@@ -1,113 +1,105 @@
-# Microprocessor architecture (MA/PM) Lab
+# Pet Feeder
+Automatic food dispenser for animals
 
-![PMRust Lab logo](https://gitlab.cs.pub.ro/pmrust/pmrust.pages.upb.ro/-/raw/main/website/static/img/logo.svg?ref_type=heads)
-
-This project is an embedded system for automatic pet feeding, built on the RP2350 platform Raspberry Pi Pico 2W and using the Embassy ecosystem for async programming, WiFi connectivity, and a web interface.
-
-## Project structure
-
-- **src/main.rs** – Main application code, contains logic for servo control, ultrasonic sensor, button, LCD, and web server.
-- **Cargo.toml** – Project dependencies and configuration.
-- **embassy-lab-utils/** – Utilities for WiFi and network stack initialization.
-- **cyw43-firmware/** – Firmware for the CYW43 WiFi chip.
+:::
 
 
-## Library Usage
+## Description
 
-•	embassy-executor:
-	- Asynchronous runtime for embedded Rust
-	- Runs main() and web_server() as async tasks
-•	embassy-rp:
-	- HAL for Raspberry Pi Pico 2W
-	- Configures PWM (servo), GPIO (button, ultrasonic), I²C (LCD)
-•	embassy-time:
-	- Async timing utilities (timers, delays)
-	- Used for Timer::after_secs(), Timer::after_micros() for delays
-•	hd44780-driver:
-	- Driver for HD44780 LCD over I²C via PCF8574 expander
-	- Initializes and writes messages to the 1602 LCD
-•	heapless:
-	- Stack-allocated types like String<32> without heap allocation
-	- Builds display messages for the LCD and HTTP headers
-•	fixed:
-	- Fixed-point arithmetic types
-	- Sets PWM frequency divider via to_fixed()
-•	defmt:
-	- Efficient logging framework for embedded devices
-	- Displays debug/info messages via info!() during runtime
-•	defmt-rtt:
-	- Sends defmt logs over RTT (Real-Time Transfer) via USB
-	- Streams logs to the host for debugging
-•	panic-probe:
-	- Panic handler that outputs the panic reason through defmt
-	- Captures and logs panics during runtime
-•	core::fmt::Write:
-	- Enables formatted string output to heapless String
-	- Used with write!() macro to write to a String<32>
-•	embassy-net:
-	- Async TCP/IP networking for embedded systems using Embassy
-	- Sets up a TCP web server and serves HTTP responses
-•	embedded-io-async:
-	- Async traits for I/O operations (read, write, flush)
-	- Used for writing HTTP responses with write_all()
-•	core::sync::atomic:
-	-Low-level atomic types for safe concurrency
-	- AtomicBool signals a dispense request from the web handler
-•	static_cell:
-	- Safe static allocation for objects that live forever
-	- Used for persistent socket buffers
-•	core::str:
-	- Core string operations (UTF-8 parsing)
-	- Interprets incoming TCP data as a string
-•	embassy_lab_utils:
-	- Custom utilities for Wi-Fi and network initialization 
-	- Provides init_wifi!() and init_network_stack() macros
-•	core::write:
-	- Macro support to use write!() in no_std
-	- Formats LCD text and HTTP headers
+I grew up surrounded by pets  at home, and one recurring challenge we faced as a family was planning vacations. We often had to limit our travel plans because it was difficult to find someone reliable to feed our pets while we were away. This inspired me to design a Smart Pet Feeder system built using a Raspberry Pi Pico 2W and Rust. The feeder dispenses food at scheduled times or remotely via wi-fi control. To make pet care more convenient and give pet owners more freedom and peace of mind when traveling.
 
+## Motivation
 
-## Main Structures and Functions
+I believe this could be a practical solution to real-life problems I've faced. Even if the project might seem a bit silly, I’m excited to have fun working with the hardware I've invested in.
 
-### Global Structures
+## Architecture 
 
-- `DISPENSE_REQUESTED: AtomicBool` – Signals if feeding was requested from the web.
-- `STACK_RESOURCES, RX_BUF, TX_BUF: StaticCell` – Buffers and resources for the network stack.
+Main Components:
 
-### Main Function: `main`
+![Architecture](./assets/schema1v2.webp)
 
-- Initializes peripherals: PWM for servo, GPIO for button and ultrasonic sensor, I2C for LCD.
-- Configures and starts the WiFi Access Point.
-- Initializes the network stack and spawns the web server task.
-- Runs the main loop:
-  - Measures distance with the ultrasonic sensor (`measure_distance`).
-  - Updates the LCD with the current state (waiting, object detected, manual/automatic feeding).
-  - Controls the servo to dispense food on request (button, web, or animal detection).
+Raspberry Pico 2W: Acts as the central processing unit for the Pet Feeder, controlling the sensors and motors.
 
-### Web Server: `web_server`
+Ultrasonic Distance Sensor HC-SR04+: Detects when a pet is near the feeder.
 
-- Listens for TCP connections on port 80.
-- Responds to HTTP requests:
-  - `/dispense` – sets the feeding flag and replies with a text message.
-  - Any other request – sends the HTML page with timer and feeding button.
+Servo Motor SG90: Drives the mechanism to dispense the pet food.
 
-### Distance Measurement: `measure_distance`
+LCD 1602: Displays a message when the object is detected.
 
-- Sends an ultrasonic pulse and measures the time until the echo returns.
-- Calculates the distance in centimeters using the formula: `pulse_us / 58`.
+Power Supply: Provides the necessary power to all components at 5V.
+ 
+Wi-Fi Module: Facilitates communication with external devices.
+
+Connection Overview:
+The Raspberry Pi Pico 2W acts as the central controller of the Pet Feeder, directly interfacing with the ultrasonic distance sensor (HC-SR04+), the SG90 servomotor, and an LCD1602 display. When the pet approaches the feeder, the sensor detects proximity, and the Pico 2W automatically activates the servo to dispense food. Simultaneously, the LCD1602 displays relevant status messages such as "Object detected" and the current measured distance, providing real-time feedback.
+The Pico also runs a Wi-Fi access point and hosts a local web server, allowing the owner to manually trigger feeding from a browser interface. The SG90 servomotor is responsible for physically releasing food from a dedicated container and is powered by a stable 5V supply. The ultrasonic distance sensor ensures that food is only dispensed when the pet is actually nearby, preventing unnecessary activation.
+This architecture ensures seamless interaction between sensing, actuation, and user control, enabling both automatic and manual feeding through reliable, Wi-Fi-based communication, with the Pico 2W orchestrating all core functions and the LCD1602 providing local visual feedback.
+
+## Log 
+
+### Week 5 - 11 May
+Bought hardware parts. Mounted the Raspberry Pi Pico 2W on breadboard. Wrote the code for the ultrasonic sensor (HC-SR04+). Tested PWM for SG90 servo motor. 
+### Week 12 - 18 May
+Wrote the code for the servomotor (SG90) and for the button. Tested the LCD.
+### Week 19 - 25 May
+Wrote the code for the LCD  to display text messages when the button is pressed and the sensor detects an object. I made a server with functionality commands.
+
+## Hardware
+
+Pico 2W - brain of the Pet Feeder
+
+Servo Motor  SG90 - delivers food
+
+Ultrasonic Distance Sensor HC-SR04+ - detects pet
+
+LCD 1602 - displays a message 
+
+Power Supply - battery 5V
+
+![Schematics](./assets/hardware1.webp)
+![Schematics](./assets/hardware2.webp)
 
 
-## Web Interface
+### Schematics
 
-The web page provides:
-- Timer setting for automatic feeding.
-- Button for immediate feeding.
-- Visual feedback on the system status.
+This is the kicad schematic.
+
+![Schematics](./assets/kicadscheme.svg)
+
+### Bill of Materials
+
+| Device | Usage | Price |
+|--------|--------|-------|
+| [Raspberry Pi Pico 2W](https://www.raspberrypi.com/documentation/microcontrollers/pico-series.html) | The microcontroller | [39 RON](https://www.optimusdigital.ro/ro/placi-raspberry-pi/13327-raspberry-pi-pico-2-w.html?gad_source=1&gbraid=0AAAAADv-p3BYbmtR0U4AB0vh3IzVtnhct&gclid=Cj0KCQjw2tHABhCiARIsANZzDWpC5jvEeQu1M-4aPsGLz0h_VUH-1oeoOhxuRTAuJpaxGS73j50IQKQaAkviEALw_wcB) |
+| [Servo Motor SG90]( https://www.optimusdigital.ro/ro/motoare-servomotoare/2261-micro-servo-motor-sg90-180.html?search_query=SG90&results=11) | The Servo Motor | [12 RON]( https://www.optimusdigital.ro/ro/motoare-servomotoare/2261-micro-servo-motor-sg90-180.html?search_query=SG90&results=11) |
+| [Raspberry Pi Pico Debug probe](https://www.raspberrypi.com/documentation/microcontrollers/debug-probe.html) | Pico Debug Probe | [66 RON]( https://www.optimusdigital.ro/ro/) |
+| [HC-SR04+ Distance sensor](https://www.optimusdigital.ro/en/ultrasonic-sensors/2328-senzor-ultrasonic-de-distana-hc-sr04-compatibil-33-v-i-5-v.html?search_query=sr04&results=20) | Used to measure the distance from the pet to the device | [15 RON]( https://www.optimusdigital.ro/ro/) |
+| [LCD 1602]( https://www.optimusdigital.ro/ro/optoelectronice-lcd-uri/2894-lcd-cu-interfata-i2c-si-backlight-albastru.html?search_query=0104110000003584&results=1) |LCD module that communicates via I2C interface and displays 2 rows of 16 characters each | [17 RON]( https://www.optimusdigital.ro/ro/) |
+
+## Software
+| Library | Description | Usage |
+|---------|-------------|-------|
+| embassy-executor  | Asynchronous runtime for embedded Rust | Runs the `main()` function as an async task and enables multitasking  |
+| embassy-rp  | Hardware Abstraction Layer (HAL) for Raspberry Pi Pico 2W |Configures PWM (servo), GPIO (button), I²C (LCD), and other peripherals |
+| embassy-time  | Async timing utilities (timers, delays) | Used for `Timer::after_secs()` and debounce delays |
+| hd44780-driver  | Driver for HD44780 LCD over I²C via PCF8574 expander | Initializes and writes messages to the 1602 LCD |
+| heapless  | Provides stack-allocated types like `String<32>` without heap allocation | Used to build display messages for the LCD without `std` |
+| fixed  | Fixed-point arithmetic types | Used to precisely set PWM frequency divider via `to_fixed()`  |
+| defmt  | Efficient logging framework for embedded devices | Displays debug/info messages via `info!` during runtime  |
+| defmt-rtt  | Sends `defmt` logs over RTT (Real-Time Transfer) via USB  | Streams logs to the host for debugging over USB |
+| panic-probe  | Panic handler that outputs the panic reason through `defmt`  | Captures and logs panics during runtime for debugging   |
+| core::fmt::Write  | Enables formatted string output to heapless `String`| Used with `write!(...)` macro to write to a `String<32>`  |
+| embassy-net | Async TCP/IP networking for embedded systems using embassy | Sets up a TCP web server and serves HTTP responses |
+| embedded-io-async | Async traits for I/O operations (read, write, flush) | Used for writing HTTP responses with write_all() |
+| core::sync::atomic | Low-level atomic types for safe concurrency | Used for AtomicBool to signal a dispense request from the web handler |
+| static_cell | Provides a safe way to statically allocate memory for objects that live forever | Used for persistent socket buffers and stack resources (StaticCell) |
+| core::str | Core string operations (UTF-8 parsing) | Used for interpreting incoming TCP data as a string |
+| embassy_lab_utils | Custom utilities for Wi-Fi and network initialization | init_wifi!() and init_network_stack() for setting up the access point and network stack |
+| core::write | Required macro support to use write!() in no_std | Formats LCD text and HTTP headers |
 
 
-## Peripheral Usage Examples
+## Links
 
-- **PWM for servo**: `Pwm::new_output_a(...)`, `set_duty_cycle(...)`
-- **GPIO for button and sensor**: `Input::new(...)`, `Output::new(...)`, `is_low()`, `set_high()`
-- **I2C for LCD**: `HD44780::new_i2c(...)`, `write_str(...)`, `clear(...)`
-- **Timer/Delay**: `Timer::after_secs(...)`, `Timer::after_micros(...)`
+1. [inspiration 1](https://youtu.be/bvon9nxhqHk?si=2qOuvlQmeptNkpEQ)
+2. [inspiration 2](https://youtu.be/vKdQXICO-r0?si=8dzN55QKdWMFFRC1)
+3. [project video](https://youtube.com/shorts/ZMkhc2RD6To)
